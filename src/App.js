@@ -97,10 +97,14 @@ function App() {
       console.log(user, profile, goal, description, duration, timeOfDay, recurrance)
     }
 
-    async function inserisciTurni(goal, description, duration) {
+    async function inserisciTurni(goal, description, duration, availableTimeSlots) {
         console.log(user.access_token);
         var accessToken = user.access_token; // Please set your access token.
         var calendarioselezionato = "primary" // Please set your calendar ID.
+        const start = availableTimeSlots[0].start
+        console.log("STARTTT"+ start)
+        const startTimeString = availableTimeSlots[0].start; // Assuming this is a date string
+        const startDate = new Date(Date.parse(startTimeString));
       
         var evento = {
           "summary": goal,
@@ -108,21 +112,21 @@ function App() {
           "description": description,
         //   "description": "desc",
           "start": {
-            "dateTime": "2024-02-18T09:00:00-07:00",
+            "dateTime": startTimeString,
           },
           "end": {
-            "dateTime": "2024-02-18T17:00:00-07:00",
+            "dateTime": "2024-02-18T17:00:00-08:00",
           },
         //   "recurrence": [
         //     'RRULE:FREQ=WEEKLY;COUNT=2'
         //   ]
         };
-        // var res = await axios.post(
-        //   `https://www.googleapis.com/calendar/v3/calendars/${calendarioselezionato}/events`,
-        //   JSON.stringify(evento),
-        //   {headers: {authorization: `Bearer ${accessToken}`, "Content-Type": "application/json"}}
-        // );
-        // console.log(res.data);
+        var res = await axios.post(
+          `https://www.googleapis.com/calendar/v3/calendars/${calendarioselezionato}/events`,
+          JSON.stringify(evento),
+          {headers: {authorization: `Bearer ${accessToken}`, "Content-Type": "application/json"}}
+        );
+        console.log(res.data);
         console.log("printing events this week")
         findAvailableTimeSlots()
         // getEventsForWeek()
@@ -155,7 +159,7 @@ function App() {
         return response.data.items
       }
 
-      async function findAvailableTimeSlots() {
+      async function findAvailableTimeSlots(goal, description, duration) {
         const accessToken = user.access_token;
         const calendarId = "primary";
         const events = await getEventsForWeek(calendarId, accessToken);
@@ -185,26 +189,37 @@ function App() {
       
           // Check if there's a gap between the previous event and the current one
            // add as a viable slot only if after 8  && eventStartTime.getHours() >= 8
-            if (eventStartTime.getHours() > 8 && previousEndTime.getHours() < 8) {
+            if (eventStartTime.getHours() > 8 && previousEndTime.getHours() < 8) { // morning
+                console.log("one")
                 let adj = new Date()
                 adj.setHours(8, 0, 0, 0)
+                console.log(previousEndTime)
+                console.log(adj)
                 availableTimeSlots.push( {start: previousEndTime, end: adj})
                 previousEndTime.setHours(8, 0, 0, 0)
-            } if (eventStartTime.getHours() > 12 && previousEndTime.getHours() < 12) {
+            } if (eventStartTime.getHours() > 12 && previousEndTime.getHours() < 12) { // afternoon
+                console.log("two")
                 let adj = new Date()
                 adj.setHours(12, 0, 0, 0)
+                console.log(previousEndTime)
+                console.log(adj)
                 availableTimeSlots.push( {start: previousEndTime, end: adj})
                 previousEndTime.setHours(12, 0, 0, 0)
+                console.log("eventStartTime.getHours() > 18 " + eventStartTime.getHours())
+                console.log("previousEndTime.getHours() < 18 " + previousEndTime.getHours())
             } if (eventStartTime.getHours() > 18 && previousEndTime.getHours() < 18) {
+                console.log("three")
                 let adj = new Date()
                 adj.setHours(18, 0, 0, 0)
+                console.log(previousEndTime)
+                console.log(adj)
                 availableTimeSlots.push( {start: previousEndTime, end: adj})
                 previousEndTime.setHours(18, 0, 0, 0)
             } if (eventStartTime > previousEndTime) {
                 availableTimeSlots.push( {start: previousEndTime, end: eventStartTime})
                 previousEndTime = new Date(eventEndTime);
             }
-            console.log("SLOT FOUND")
+            console.log("SLOT FOUND" + previousEndTime + " " + eventStartTime)
       
         //   const eventEndTime = new Date(event.end.dateTime);
         //   if (eventEndTime > previousEndTime) {
@@ -232,7 +247,7 @@ function App() {
         // });
         console.log(availableTimeSlots)
       
-        return availableTimeSlots;
+        inserisciTurni(goal, description, duration, availableTimeSlots)
       }
       
       
@@ -240,7 +255,7 @@ function App() {
 
     return (
         <div>
-            <h2>React Google Login</h2>
+            <h2>Goalseek</h2>
             <br />
             <br />
             {profile ? (
@@ -283,7 +298,7 @@ function App() {
                   </label>
                   <br />
                   <br />
-                  <button type='submit' onClick={() => inserisciTurni(goal, description)}>Create goal</button>
+                  <button type='submit' onClick={() => findAvailableTimeSlots(goal, description, duration)}>Create goal</button>
                 </form>
               </div>
             ) : (
